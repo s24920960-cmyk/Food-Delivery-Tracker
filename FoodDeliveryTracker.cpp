@@ -663,3 +663,75 @@ return;
  cout << "Order not found.\n";
  pause();
  }
+void addRestaurant() {
+ string name = clean(readLine("Restaurant name: "));
+ string cuisine = clean(readLine("Cuisine: "));
+ if (name.empty() || cuisine.empty()) {
+ cout << "Name and cuisine are required.\n";
+ return;
+ }
+ int id = restaurants.empty() ? 1 : restaurants.back().id + 1;
+ restaurants.push_back({id, name, cuisine, {}});
+ saveRestaurants();
+ cout << "Restaurant added. Now add some menu items.\n";
+ }
+ int pickRestaurant() {
+ for (size_t i = 0; i < restaurants.size(); i++) cout << " " << i + 1 << ". " << restaurants[i].name << "\n";
+ cout << " 0. Back\n";
+ return readInt("Select restaurant: ", 0, (int)restaurants.size()) - 1;
+ }
+ void addMenuItem() {
+ int r = pickRestaurant();
+ if (r < 0) return;
+ string name = clean(readLine("Item name: "));
+ if (name.empty()) return;
+ double price = readPrice("Price: ");
+ restaurants[r].menu.push_back({name, price});
+ saveRestaurants();
+ cout << "Item added.\n";
+ }
+ void removeMenuItem() {
+ int r = pickRestaurant();
+ if (r < 0) return;
+ auto& menu = restaurants[r].menu;
+ if (menu.empty()) {
+ cout << "No items to remove.\n";
+ return;
+ }
+ for (size_t i = 0; i < menu.size(); i++)
+ cout << " " << i + 1 << ". " << menu[i].name << "\n";
+ int c = readInt("Item to remove (0 to cancel): ", 0, (int)menu.size());
+ if (c == 0) return;
+ menu.erase(menu.begin() + c - 1);
+ saveRestaurants();
+ cout << "Item removed.\n";
+ }
+ void revenueReport() {
+ header("REVENUE REPORT");
+ double total = 0;
+ int delivered = 0, cancelled = 0, active = 0;
+ for (auto& o : orders) {
+ if (o.status == "Cancelled") cancelled++;
+ else {
+ total += o.total;
+(o.status == "Delivered" ? delivered : active)++;
+ }
+ }
+ cout << " Total orders : " << orders.size() << "\n"
+ << " Delivered : " << delivered << "\n"
+ << " In progress : " << active << "\n"
+ << " Cancelled : " << cancelled << "\n"
+ << " Total revenue : " << money(total) << "\n\n";
+ cout << " Revenue by restaurant:\n";
+ for (auto& r : restaurants) {
+ double sum = 0;
+ for (auto& o : orders)
+ if (o.restaurant == r.name && o.status != "Cancelled") sum += o.total; cout << " " << left << setw(20) << r.name << money(sum) << "\n";
+ }
+ pause();
+ }
+};
+int main() {
+ FoodApp app;
+ app.run();
+ return 0;
