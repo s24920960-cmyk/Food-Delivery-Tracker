@@ -1,0 +1,14 @@
+========================================
+ORDER ID: FD-1001
+Date/Time: 2026-11-24 22:59:14
+Customer: Sumit Prajapati (9876543210)
+Address: Hostel 3, MITS Gwalior
+Status: Placed
+Items Ordered:
+ - Paneer Butter Masala x 2 = INR 480.00
+Subtotal: INR 480.00
+GST (5%): INR 24.00
+Delivery Fee: INR 0.00
+Grand Total: INR 504.00
+========================================
+

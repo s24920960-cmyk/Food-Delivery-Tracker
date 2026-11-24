@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CravePulse | Real-Time Food Delivery & Satellite GPS Tracking</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Application CSS -->
+  <link rel="stylesheet" href="styles.css?v=3.1">
+</head>
+<body>
+
+  <!-- Background 3D Ambient Orbs -->
+  <div class="ambient-glow orb-1"></div>
+  <div class="ambient-glow orb-2"></div>
+  <div class="ambient-glow orb-3"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand" onclick="switchView('home')">
+        <div class="brand-3d-box">
+          <span class="brand-icon">⚡</span>
+        </div>
+        <div class="brand-meta">
+          <span class="brand-name">Crave<span class="highlight">Pulse</span></span>
+          <span class="brand-tagline">Satellite Delivery</span>
+        </div>
+      </div>
+
+      <!-- Delivery Location Picker -->
+      <div class="location-picker" onclick="promptAddressChange()">
+        <span class="loc-pin">📍</span>
+        <div class="loc-info">
+          <span class="loc-label">DELIVER TO</span>
+          <span class="loc-val" id="currentLocationText">Home • Green View Apartments, Sector 4</span>
+        </div>
+        <span class="loc-caret">▼</span>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-links" id="navLinks">
+        <button class="nav-item active" onclick="switchView('home')">
+          <span>Explore</span>
+        </button>
+        <button class="nav-item" onclick="switchView('restaurants')">
+          <span>Restaurants</span>
+        </button>
+        <button class="nav-item" onclick="switchView('menu')">
+          <span>Menu</span>
+        </button>
+        <button class="nav-item" onclick="switchView('tracking')">
+          <span class="live-dot-pulse"></span>
+          <span>Live Tracking</span>
+        </button>
+        <button class="nav-item" onclick="switchView('history')">
+          <span>My Orders</span>
+        </button>
+        <button class="nav-item" id="adminNavItem" onclick="switchView('admin')">
+          <span>Admin Portal</span>
+        </button>
+      </nav>
+
+      <!-- User Auth & Cart Actions -->
+      <div class="nav-actions">
+        <!-- Auth Profile Badge -->
+        <div class="user-auth-badge" id="userAuthBadge">
+          <button class="btn-login-modal" onclick="openAuthModal()">
+            <span>👤 Login / Register</span>
+          </button>
+        </div>
+
+        <!-- 3D Cart Button -->
+        <button class="btn-cart-3d" onclick="switchView('cart')">
+          <span class="cart-icon">🛒</span>
+          <span class="cart-title">Cart</span>
+          <span class="cart-badge-count" id="cartBadgeCount">0</span>
+        </button>
+        <button class="mobile-toggle" onclick="toggleMobileNav()">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Viewport -->
+  <main class="app-viewport">
+
+    <!-- ================= VIEW 1: HOME & HERO ================= -->
+    <section id="view-home" class="view-panel active">
+      
+      <!-- 3D Hero Section -->
+      <div class="hero-3d-container">
+        <div class="hero-left">
+          <div class="pill-badge">
+            <span class="fire-icon">🔥</span> Free delivery on orders over ₹500
+          </div>
+          <h1 class="hero-heading">
+            Gourmet Meals,<br>
+            <span class="text-gradient">Satellite GPS Tracked</span><br>
+            To Your Doorstep.
+          </h1>
+          <p class="hero-subtext">
+            Browse top-rated restaurants, order with instant coupons, pay via COD/UPI/Card, 
+            and track your delivery partner on live high-res satellite streets.
+          </p>
+
+          <!-- Search & Action Bar -->
+          <div class="hero-search-glass">
+            <span class="search-lens">🔍</span>
+            <input type="text" id="heroSearchInput" placeholder="Search dishes or restaurants (Pizza, Biryani, Burgers)..." onkeyup="handleHeroSearch(event)">
+            <button class="btn-hero-action" onclick="searchFromHero()">Find Food</button>
+          </div>
+
+          <div class="hero-metrics">
+            <div class="metric-card">
+              <span class="metric-val">24 mins</span>
+              <span class="metric-label">Average Delivery</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-card">
+              <span class="metric-val">Satellite</span>
+              <span class="metric-label">All Street View</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-card">
+              <span class="metric-val">COD / UPI</span>
+              <span class="metric-label">Flexible Payments</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D Floating Scene -->
+        <div class="hero-right">
+          <div class="scene-3d" id="heroScene">
+            
+            <!-- Main 3D Card -->
+            <div class="card-3d hero-main-card">
+              <div class="order-live-header">
+                <div class="pulse-indicator">
+                  <span class="pulse-ring"></span>
+                  <span class="pulse-core"></span>
+                </div>
+                <span class="live-status-text">ORDER IN TRANSIT</span>
+                <span class="live-eta-pill" id="heroLiveEta">11 MINS</span>
+              </div>
+
+              <div class="food-preview-visual">
+                <div class="floating-food-3d pizza-float">🍕</div>
+                <div class="floating-food-3d burger-float">🍔</div>
+                <div class="floating-food-3d drink-float">🥤</div>
+              </div>
+
+              <div class="card-driver-snippet">
+                <div class="driver-avatar-ring">
+                  <span>🛵</span>
+                </div>
+                <div class="driver-meta-snippet">
+                  <strong>Rider Vikram Singh</strong>
+                  <small>Honda Activa 6G • Satellite Lock Active</small>
+                </div>
+                <button class="btn-track-instant" onclick="switchView('tracking')">Satellite View ➔</button>
+              </div>
+
+              <!-- Animated Mini Route Bar -->
+              <div class="mini-route-meter">
+                <div class="meter-fill" style="width: 72%;"></div>
+              </div>
+              <div class="mini-route-labels">
+                <span>Restaurant</span>
+                <span>En Route (1.4 km left)</span>
+                <span>You</span>
+              </div>
+            </div>
+
+            <!-- Floating 3D Badge 1 -->
+            <div class="floating-badge badge-top-right">
+              <span class="badge-icon">🛰️</span>
+              <div>
+                <strong>Satellite Radar</strong>
+                <small>High-res street imaging</small>
+              </div>
+            </div>
+
+            <!-- Floating 3D Badge 2 -->
+            <div class="floating-badge badge-bottom-left">
+              <span class="badge-icon">🏷️</span>
+              <div>
+                <strong>Coupon WELCOME50</strong>
+                <small>50% Off Applied</small>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured Restaurants Showcase -->
+      <section class="home-section">
+        <div class="section-top">
+          <div>
+            <h2 class="section-title">Top Partner Restaurants</h2>
+            <p class="section-subtitle">Order from certified gourmet kitchens with superfast dispatch</p>
+          </div>
+          <button class="btn-link" onclick="switchView('restaurants')">View All Restaurants ➔</button>
+        </div>
+
+        <div class="restaurants-grid" id="homeRestaurantsGrid">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Trending Dishes Showcase -->
+      <section class="home-section">
+        <div class="section-top">
+          <div>
+            <h2 class="section-title">Trending Dishes</h2>
+            <p class="section-subtitle">Highest rated customer favorites prepared fresh to order</p>
+          </div>
+          <div class="diet-toggles">
+            <button class="diet-btn active" id="filterAllHome" onclick="setDietFilter('all')">All</button>
+            <button class="diet-btn" id="filterVegHome" onclick="setDietFilter('veg')">🟢 Veg</button>
+            <button class="diet-btn" id="filterNonVegHome" onclick="setDietFilter('non-veg')">🔴 Non-Veg</button>
+          </div>
+        </div>
+
+        <div class="dishes-grid" id="homeDishesGrid">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+    </section>
+
+    <!-- ================= VIEW 2: RESTAURANTS ================= -->
+    <section id="view-restaurants" class="view-panel">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Partner Restaurants</h1>
+          <p class="view-subtitle">Select a restaurant to browse its exclusive kitchen menu.</p>
+        </div>
+        <div class="menu-search-box">
+          <input type="text" id="restaurantSearchInput" placeholder="Search restaurants by name or cuisine..." onkeyup="filterRestaurantsCatalog()">
+        </div>
+      </div>
+
+      <div class="restaurants-grid" id="fullRestaurantsGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ================= VIEW 3: FULL FOOD MENU ================= -->
+    <section id="view-menu" class="view-panel">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title" id="menuViewHeading">All Food Dishes</h1>
+          <p class="view-subtitle" id="menuViewSubheading">Browse items across all restaurants or filter by cuisine category.</p>
+        </div>
+        <div class="menu-search-box">
+          <input type="text" id="menuSearchInput" placeholder="Search dishes (e.g., Pizza, Biryani)..." onkeyup="filterMenuCatalog()">
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="menu-filter-bar">
+        <div class="filter-pills" id="menuFilterPills">
+          <button class="filter-pill active" onclick="setMenuCategory('all')">All Dishes</button>
+          <button class="filter-pill" onclick="setMenuCategory('Main Course')">Main Course</button>
+          <button class="filter-pill" onclick="setMenuCategory('Biryani')">Biryani</button>
+          <button class="filter-pill" onclick="setMenuCategory('Fast Food')">Burgers & Pizzas</button>
+          <button class="filter-pill" onclick="setMenuCategory('Breads')">Breads</button>
+          <button class="filter-pill" onclick="setMenuCategory('Beverages')">Beverages</button>
+          <button class="filter-pill" onclick="setMenuCategory('Dessert')">Desserts</button>
+        </div>
+
+        <div class="veg-toggle-wrapper">
+          <label class="toggle-label">
+            <input type="checkbox" id="vegOnlyCheckbox" onchange="toggleVegOnly(this)">
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Veg Only</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Menu Grid -->
+      <div class="dishes-grid" id="fullMenuGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ================= VIEW 4: CART & BILLING ================= -->
+    <section id="view-cart" class="view-panel">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Your Food Cart</h1>
+          <p class="view-subtitle">Review items, apply discount vouchers, select payment method, and order.</p>
+        </div>
+        <button class="btn-outline-danger" onclick="clearCart()">Empty Cart</button>
+      </div>
+
+      <div class="cart-layout">
+        <!-- Cart Items List -->
+        <div class="cart-items-container">
+          <div id="cartItemsList" class="cart-list">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Bill Checkout Panel -->
+        <div class="cart-bill-container">
+          <div class="bill-glass-card">
+            <h3 class="bill-title">Order Bill Breakdown</h3>
+
+            <!-- Promo Code Input (Key Feature #4: WELCOME50 & SAVE20) -->
+            <div class="promo-box">
+              <input type="text" id="promoInput" placeholder="Try WELCOME50 or SAVE20">
+              <button class="btn-promo-apply" onclick="applyPromoCode()">Apply</button>
+            </div>
+            <div id="promoFeedback" class="promo-feedback"></div>
+
+            <!-- Cost Breakdown (Key Feature #5 & #6) -->
+            <div class="bill-breakdown">
+              <div class="bill-row">
+                <span>Item Subtotal</span>
+                <span id="subtotalDisplay">₹0.00</span>
+              </div>
+              <div class="bill-row">
+                <span>Delivery Fee (Rs. 40, Free from Rs. 500)</span>
+                <span id="deliveryFeeDisplay">₹40.00</span>
+              </div>
+              <div class="bill-row">
+                <span>GST (5% SGST + CGST)</span>
+                <span id="taxesDisplay">₹0.00</span>
+              </div>
+              <div class="bill-row discount-row" id="discountRow" style="display:none;">
+                <span>Coupon Discount</span>
+                <span id="discountDisplay">-₹0.00</span>
+              </div>
+              
+              <!-- Rider Tip Selector -->
+              <div class="tip-selector">
+                <span class="tip-label">Delivery Partner Tip:</span>
+                <div class="tip-buttons">
+                  <button class="tip-btn" onclick="setTip(0)">₹0</button>
+                  <button class="tip-btn active" onclick="setTip(20)">₹20</button>
+                  <button class="tip-btn" onclick="setTip(30)">₹30</button>
+                  <button class="tip-btn" onclick="setTip(50)">₹50</button>
+                </div>
+              </div>
+
+              <div class="free-delivery-badge" id="freeDeliveryAlert">
+                🎉 Free delivery on orders Rs. 500 & above!
+              </div>
+
+              <div class="bill-divider"></div>
+
+              <div class="bill-row total-row">
+                <span>Grand Total</span>
+                <span id="grandTotalDisplay" class="total-price">₹0.00</span>
+              </div>
+            </div>
+
+            <!-- Payment Method Selection (Key Feature #7: COD, UPI, Card) -->
+            <div class="payment-selection-box">
+              <h4>Select Payment Method</h4>
+              <div class="payment-options-grid">
+                <label class="pay-option active">
+                  <input type="radio" name="payMethod" value="Cash on Delivery (COD)" checked onchange="selectPaymentMethod(this)">
+                  <span class="pay-icon">💵</span>
+                  <div class="pay-text">
+                    <strong>Cash on Delivery (COD)</strong>
+                    <small>Pay cash / UPI upon delivery</small>
+                  </div>
+                </label>
+
+                <label class="pay-option">
+                  <input type="radio" name="payMethod" value="UPI (GPay / PhonePe / Paytm)" onchange="selectPaymentMethod(this)">
+                  <span class="pay-icon">📱</span>
+                  <div class="pay-text">
+                    <strong>Instant UPI</strong>
+                    <small>Google Pay, PhonePe, Paytm, QR</small>
+                  </div>
+                </label>
+
+                <label class="pay-option">
+                  <input type="radio" name="payMethod" value="Credit / Debit Card" onchange="selectPaymentMethod(this)">
+                  <span class="pay-icon">💳</span>
+                  <div class="pay-text">
+                    <strong>Credit / Debit Card</strong>
+                    <small>Visa, Mastercard, RuPay</small>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Delivery Address Form -->
+            <div class="delivery-details-form">
+              <h4>Delivery Details</h4>
+              <div class="form-field">
+                <label>Receiver Name</label>
+                <input type="text" id="checkoutName" value="Rahul Sharma">
+              </div>
+              <div class="form-field">
+                <label>Phone Number</label>
+                <input type="text" id="checkoutPhone" value="+91 98765 43210">
+              </div>
+              <div class="form-field">
+                <label>Delivery Address</label>
+                <input type="text" id="checkoutAddress" value="Flat 402, Green View Apartments, Sector 4">
+              </div>
+
+              <button class="btn-checkout-place" onclick="executeCheckout()">
+                <span>Place Demo Order & Track Live ➔</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 5: SATELLITE GPS & 3D EARTH TRACKING ================= -->
+    <section id="view-tracking" class="view-panel">
+      
+      <!-- Top Order Bar -->
+      <div class="tracker-header-card">
+        <div class="th-left">
+          <div class="th-status-pill" id="trackerStatusPill">
+            <span class="live-blink"></span>
+            <span id="trackerStatusText">Out for Delivery</span>
+          </div>
+          <h2 class="th-order-id" id="trackerOrderId">Order #FD-1001</h2>
+          <span class="th-timestamp" id="trackerTimestamp">Placed at 22:45 • Expected in 11 mins</span>
+        </div>
+
+        <div class="th-right">
+          <div class="eta-big-box">
+            <span class="eta-num" id="liveEtaDisplay">11</span>
+            <span class="eta-unit">MINS<br>ETA</span>
+          </div>
+          <div class="dist-big-box">
+            <span class="dist-num" id="liveDistanceDisplay">1.8</span>
+            <span class="dist-unit">KM<br>AWAY</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-Time 6-Stage Progress Track -->
+      <div class="delivery-progress-card">
+        <div class="stepper-track">
+          <div class="step-node" id="stepNode-Placed">
+            <div class="node-icon">📋</div>
+            <span class="node-title">Order Placed</span>
+          </div>
+          <div class="step-line" id="stepLine-1"></div>
+          <div class="step-node" id="stepNode-Confirmed">
+            <div class="node-icon">👍</div>
+            <span class="node-title">Accepted</span>
+          </div>
+          <div class="step-line" id="stepLine-2"></div>
+          <div class="step-node" id="stepNode-Preparing">
+            <div class="node-icon">🍳</div>
+            <span class="node-title">Cooking</span>
+          </div>
+          <div class="step-line" id="stepLine-3"></div>
+          <div class="step-node" id="stepNode-Picked Up">
+            <div class="node-icon">📦</div>
+            <span class="node-title">Picked Up</span>
+          </div>
+          <div class="step-line" id="stepLine-4"></div>
+          <div class="step-node" id="stepNode-Out for Delivery">
+            <div class="node-icon">🛵</div>
+            <span class="node-title">On the Way</span>
+          </div>
+          <div class="step-line" id="stepLine-5"></div>
+          <div class="step-node" id="stepNode-Delivered">
+            <div class="node-icon">🎉</div>
+            <span class="node-title">Arrived</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map & Real-Time Driver Operations Grid -->
+      <div class="tracking-grid-3d">
+        
+        <!-- Live Map Container with Satellite, Street & 3D Globe Modes -->
+        <div class="map-card-3d">
+          <div class="map-bar">
+            <div class="map-bar-left">
+              <span class="radar-dot"></span>
+              <strong>Live Geospatial Radar</strong>
+              <!-- 3-Way Mode Switcher: Satellite / Streets / 3D Earth -->
+              <div class="map-view-switcher">
+                <button class="btn-view-toggle active" id="btnViewSatellite" onclick="switchMapMode('satellite')">🛰️ Satellite Street View</button>
+                <button class="btn-view-toggle" id="btnViewStreet" onclick="switchMapMode('street')">🗺️ Detailed Streets</button>
+                <button class="btn-view-toggle" id="btnViewGlobe" onclick="switchMapMode('globe')">🌍 3D Earth Globe</button>
+              </div>
+            </div>
+            <div class="map-bar-actions">
+              <button class="btn-map-control" id="btnZoomToLocation" onclick="zoomToRiderLocation()">🎯 Center on Rider</button>
+              <button class="btn-map-control" onclick="simulateDriverStep()">Move Rider 🛵➔</button>
+              <button class="btn-map-control highlight" id="autoSimulationBtn" onclick="toggleAutoMove()">Auto GPS: OFF</button>
+            </div>
+          </div>
+
+          <!-- Leaflet Map Canvas (Photorealistic Satellite & Hybrid Streets) -->
+          <div id="liveTrackingMap" class="leaflet-map-canvas"></div>
+
+          <!-- 3D Earth Globe Canvas (Solar System & Space View) -->
+          <div id="earthGlobeContainer" class="earth-3d-canvas" style="display:none;">
+            <div class="globe-overlay-hint">
+              <span>🖱️ Drag to rotate 3D Earth • Scroll wheel to zoom in/out</span>
+              <span id="globeCoordBadge" class="coord-badge">📍 26.2245° N, 78.2091° E</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rider Profile & Order Manifest Card -->
+        <div class="tracking-side-pane">
+          
+          <!-- Delivery Partner Profile Card -->
+          <div class="driver-card-3d">
+            <div class="driver-profile-top">
+              <div class="driver-pic-3d">
+                <span>👨‍💼</span>
+              </div>
+              <div class="driver-credentials">
+                <div class="driver-name-row">
+                  <h3 id="driverCardName">Vikram Singh</h3>
+                  <span class="driver-verified-check">✓ Verified</span>
+                </div>
+                <div class="driver-rating-badge">★ 4.9 (1,420 Deliveries)</div>
+                <div class="driver-vehicle" id="driverVehicle">Honda Activa 6G • White (MP-07-CB-4210)</div>
+              </div>
+            </div>
+
+            <div class="driver-safety-pill">
+              🛡️ Fully vaccinated rider • Thermal bag sealed
+            </div>
+
+            <div class="driver-actions-row">
+              <button class="btn-driver-call" onclick="triggerCallDriver()">
+                📞 Call Rider
+              </button>
+              <button class="btn-driver-chat" onclick="triggerChatDriver()">
+                💬 Message
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Route Distance & Speed Telemetry -->
+          <div class="telemetry-card">
+            <h4>Live Geodesic Telemetry</h4>
+            <div class="telemetry-grid">
+              <div class="telemetry-item">
+                <span class="t-label">Straight-Line Route</span>
+                <strong id="telemetryDistance">1.82 km</strong>
+              </div>
+              <div class="telemetry-item">
+                <span class="t-label">Estimated Speed</span>
+                <strong>28 km/h</strong>
+              </div>
+              <div class="telemetry-item">
+                <span class="t-label">Remaining Time</span>
+                <strong id="telemetryEta">~5 mins</strong>
+              </div>
+              <div class="telemetry-item">
+                <span class="t-label">Satellite Imagery</span>
+                <span style="color:var(--success)">Esri World High-Res</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Summary Items -->
+          <div class="manifest-card">
+            <h4>Order Details (<span id="manifestCount">3</span> items)</h4>
+            <div class="manifest-list" id="manifestItemsList">
+              <!-- Inserted by JS -->
+            </div>
+            <div class="manifest-footer">
+              <span>Paid Amount:</span>
+              <strong id="manifestTotal">₹472.50</strong>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= VIEW 6: ORDER HISTORY & CANCELLATION ================= -->
+    <section id="view-history" class="view-panel">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Order History & Tracking</h1>
+          <p class="view-subtitle">Review all your previous orders, live tracking status, and cancellation options.</p>
+        </div>
+      </div>
+
+      <div class="history-orders-list" id="orderHistoryContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ================= VIEW 7: ADMIN PORTAL ================= -->
+    <section id="view-admin" class="view-panel">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Store Administrator Dashboard</h1>
+          <p class="view-subtitle">Manage restaurants, update menus & prices, monitor orders, and view revenue analytics.</p>
+        </div>
+        <button class="btn-glass-refresh" onclick="refreshAdminDashboard()">🔄 Refresh Data</button>
+      </div>
+
+      <!-- Admin Sub-Navigation Tabs -->
+      <div class="admin-tabs-bar">
+        <button class="admin-tab-btn active" onclick="switchAdminTab('revenue')">📊 Revenue Analytics</button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('restaurants')">🏪 Manage Restaurants</button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('menu')">🍽️ Menus & Pricing</button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('orders')">📦 Live Order Management</button>
+      </div>
+
+      <!-- 1. Revenue Report (Key feature #10) -->
+      <div id="admin-sec-revenue" class="admin-section active">
+        <div class="revenue-metrics-grid">
+          <div class="rev-card">
+            <span class="rev-label">TOTAL PLATFORM REVENUE</span>
+            <strong class="rev-val" id="revTotalSales">₹14,890.00</strong>
+            <small class="rev-sub">Active & Delivered orders</small>
+          </div>
+          <div class="rev-card">
+            <span class="rev-label">TOTAL ORDERS PLACED</span>
+            <strong class="rev-val" id="revTotalOrders">28 Orders</strong>
+            <small class="rev-sub" id="revCompletedCount">26 Delivered • 2 Cancelled</small>
+          </div>
+          <div class="rev-card">
+            <span class="rev-label">AVERAGE ORDER VALUE</span>
+            <strong class="rev-val" id="revAvgTicket">₹531.78</strong>
+            <small class="rev-sub">Per transaction</small>
+          </div>
+        </div>
+
+        <div class="revenue-breakdown-card">
+          <h3>Payment Method Distribution</h3>
+          <div class="payment-bars-list" id="revenuePaymentBars">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Manage Restaurants (Key feature #9) -->
+      <div id="admin-sec-restaurants" class="admin-section">
+        <div class="admin-two-col">
+          <!-- Add Restaurant Form -->
+          <div class="admin-form-card">
+            <h3>Add New Restaurant</h3>
+            <div class="form-field">
+              <label>Restaurant Name</label>
+              <input type="text" id="newRestName" placeholder="e.g. Wok & Roll Asian">
+            </div>
+            <div class="form-field">
+              <label>Cuisine Speciality</label>
+              <input type="text" id="newRestCuisine" placeholder="e.g. Pan-Asian & Dimsums">
+            </div>
+            <div class="form-field">
+              <label>Delivery Time</label>
+              <input type="text" id="newRestTime" placeholder="e.g. 20-25 min">
+            </div>
+            <div class="form-field">
+              <label>Location / Address</label>
+              <input type="text" id="newRestAddress" placeholder="e.g. Sector 18 Market">
+            </div>
+            <button class="btn-hero-action btn-block" onclick="adminAddRestaurant()">+ Add Restaurant</button>
+          </div>
+
+          <!-- Existing Restaurants List -->
+          <div class="admin-table-card">
+            <h3>Registered Restaurants</h3>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Cuisine</th>
+                    <th>Delivery</th>
+                    <th>Rating</th>
+                  </tr>
+                </thead>
+                <tbody id="adminRestaurantsTable">
+                  <!-- Rendered by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Manage Menus & Pricing (Key feature #9) -->
+      <div id="admin-sec-menu" class="admin-section">
+        <div class="admin-two-col">
+          <!-- Add Menu Item Form -->
+          <div class="admin-form-card">
+            <h3>Add New Food Item</h3>
+            <div class="form-field">
+              <label>Select Restaurant</label>
+              <select id="newDishRestaurant" class="admin-select">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Item Name</label>
+              <input type="text" id="newDishName" placeholder="e.g. BBQ Paneer Pizza">
+            </div>
+            <div class="form-field">
+              <label>Category</label>
+              <select id="newDishCategory" class="admin-select">
+                <option value="Main Course">Main Course</option>
+                <option value="Fast Food">Fast Food</option>
+                <option value="Biryani">Biryani</option>
+                <option value="Breads">Breads</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Dessert">Dessert</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Price (₹)</label>
+              <input type="number" id="newDishPrice" placeholder="249">
+            </div>
+            <div class="form-field">
+              <label>Dietary Type</label>
+              <select id="newDishDiet" class="admin-select">
+                <option value="1">🟢 Vegetarian</option>
+                <option value="0">🔴 Non-Vegetarian</option>
+              </select>
+            </div>
+            <button class="btn-hero-action btn-block" onclick="adminAddMenuItem()">+ Add Dish to Menu</button>
+          </div>
+
+          <!-- Existing Dishes List with Quick Price Update -->
+          <div class="admin-table-card">
+            <h3>Menu Items & Price Modification</h3>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Dish</th>
+                    <th>Category</th>
+                    <th>Price (₹)</th>
+                    <th>Update Price</th>
+                  </tr>
+                </thead>
+                <tbody id="adminMenuTable">
+                  <!-- Rendered by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Manage Order Status (Key feature #9) -->
+      <div id="admin-sec-orders" class="admin-section">
+        <div class="admin-table-card">
+          <h3>Customer Orders & Status Pipeline</h3>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Amount</th>
+                  <th>Payment</th>
+                  <th>Status</th>
+                  <th>Update Action</th>
+                </tr>
+              </thead>
+              <tbody id="adminOrdersTable">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Login / Register Modal (Key feature #1 & Flowchart Start) -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-3d-card auth-modal-box">
+      <div class="auth-modal-header">
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" id="authTabLogin" onclick="switchAuthTab('login')">Sign In</button>
+          <button class="auth-tab-btn" id="authTabRegister" onclick="switchAuthTab('register')">Register</button>
+        </div>
+        <button class="auth-close-btn" onclick="closeAuthModal()">✕</button>
+      </div>
+
+      <!-- Login Form -->
+      <div id="authFormLogin" class="auth-form-body">
+        <div class="form-field">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" value="customer@cravepulse.com">
+        </div>
+        <div class="form-field">
+          <label>Password</label>
+          <input type="password" id="loginPassword" value="password123">
+        </div>
+
+        <div class="quick-demo-accounts">
+          <span>Quick Demo Logins:</span>
+          <div class="quick-pills">
+            <button class="btn-quick-pill" onclick="fillDemoLogin('customer')">Customer Demo</button>
+            <button class="btn-quick-pill highlight" onclick="fillDemoLogin('admin')">Store Admin Demo</button>
+          </div>
+        </div>
+
+        <button class="btn-checkout-place" onclick="executeLogin()">Sign In ➔</button>
+      </div>
+
+      <!-- Register Form -->
+      <div id="authFormRegister" class="auth-form-body" style="display:none;">
+        <div class="form-field">
+          <label>Full Name</label>
+          <input type="text" id="regName" placeholder="e.g. Priya Patel">
+        </div>
+        <div class="form-field">
+          <label>Email Address</label>
+          <input type="email" id="regEmail" placeholder="priya@example.com">
+        </div>
+        <div class="form-field">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="••••••••">
+        </div>
+        <div class="form-field">
+          <label>Account Type (Role)</label>
+          <select id="regRole" class="admin-select">
+            <option value="Customer">Customer</option>
+            <option value="Admin">Store Administrator</option>
+          </select>
+        </div>
+        <button class="btn-checkout-place" onclick="executeRegister()">Create Account ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Success / Terminal Bill Receipt Modal -->
+  <div id="checkoutSuccessModal" class="modal-overlay">
+    <div class="receipt-modal-container">
+      <div class="terminal-receipt-card" id="terminalReceiptCard">
+        <div class="terminal-window-bar">
+          <div class="terminal-dots">
+            <span class="term-dot dot-red"></span>
+            <span class="term-dot dot-yellow"></span>
+            <span class="term-dot dot-green"></span>
+          </div>
+          <span class="term-title">cravepulse-order-receipt.txt</span>
+          <button class="term-close-x" onclick="closeReceiptModal()" title="Close receipt">✕</button>
+        </div>
+        
+        <div class="terminal-receipt-content" id="modalReceiptDetails">
+          <!-- Populated by JS in exact terminal receipt layout -->
+        </div>
+      </div>
+
+      <div class="receipt-modal-controls">
+        <button class="btn-modal-action" onclick="closeModalAndTrack()">
+          <span>Track Live on Satellite Radar ➔</span>
+        </button>
+        <div class="receipt-aux-buttons">
+          <button class="btn-aux-receipt" onclick="printReceipt()">
+            <span>🖨️ Print / Save PDF</span>
+          </button>
+          <button class="btn-aux-receipt" onclick="downloadReceiptTxt()">
+            <span>💾 Download .txt</span>
+          </button>
+          <button class="btn-aux-receipt close-btn" onclick="closeReceiptModal()">
+            <span>Close ✕</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toastNotificationShelf" class="toast-shelf"></div>
+
+  <!-- Leaflet Map Script -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Three.js & OrbitControls for 3D Earth Globe & Space Environment -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- App JS -->
+  <script src="app.js?v=3.1"></script>
+</body>
+</html>

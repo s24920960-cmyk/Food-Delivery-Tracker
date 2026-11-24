@@ -1,0 +1,11 @@
+# OS & Editor
+.DS_Store
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# C++ compiled binary
+food_delivery_tracker
+*.dSYM/
